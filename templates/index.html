@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Set up your interview · Interview Room{% endblock %}
+{% block crumb %}step 1 of 3, the role{% endblock %}
+{% block content %}
+<section style="margin-bottom:40px">
+  <span class="eyebrow">Rehearsal, not the real thing</span>
+  <h1 class="page-title">Walk in ready.</h1>
+  <p class="page-lede">
+    Paste the job you're going for, choose how tough you want the room to be,
+    and practise the whole conversation out loud, with honest feedback at the end.
+  </p>
+</section>
+
+<div class="setup-grid">
+  <form class="card setup-form" method="post" action="/generate" id="setup-form">
+    <div class="field">
+      <label for="position_title">Position</label>
+      <input type="text" id="position_title" name="position_title" required
+             placeholder="e.g. Senior Data Engineer">
+    </div>
+
+    <div class="field">
+      <label for="industry">Industry</label>
+      <input type="text" id="industry" name="industry" required
+             placeholder="e.g. technology, finance, healthcare">
+    </div>
+
+    <div class="field">
+      <label for="job_description">Job description</label>
+      <textarea id="job_description" name="job_description" required
+                placeholder="Paste the listing, or describe the role in your own words."></textarea>
+      <p class="hint">The interviewer builds their questions from this, so more detail helps.</p>
+    </div>
+
+    <div class="field">
+      <label>How tough should the room be?</label>
+      <div class="seg cols-4">
+        <input type="radio" name="difficulty" value="easy" id="d-easy">
+        <label class="opt" for="d-easy"><strong>Gentle</strong><span>warm-up questions</span></label>
+        <input type="radio" name="difficulty" value="medium" id="d-med" checked>
+        <label class="opt" for="d-med"><strong>Standard</strong><span>a fair, real interview</span></label>
+        <input type="radio" name="difficulty" value="hard" id="d-hard">
+        <label class="opt" for="d-hard"><strong>Tough</strong><span>probing follow-ups</span></label>
+        <input type="radio" name="difficulty" value="expert" id="d-exp">
+        <label class="opt" for="d-exp"><strong>Stress</strong><span>pressure and pace</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Question focus</label>
+      <div class="check-row">
+        <label><input type="checkbox" name="behavioral" value="true" checked> Behavioural</label>
+        <label><input type="checkbox" name="technical" value="true"> Technical</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Where should the interview run?</label>
+      <div class="seg cols-3">
+        <input type="radio" name="engine" value="local" id="e-local" checked>
+        <label class="opt" for="e-local"><strong>On this machine</strong><span>local speech pipeline + LM Studio</span></label>
+        <input type="radio" name="engine" value="local_avatar" id="e-hybrid">
+        <label class="opt" for="e-hybrid"><strong>Local, with a face</strong><span>local brain, video interviewer</span></label>
+        <input type="radio" name="engine" value="cloud" id="e-cloud">
+        <label class="opt" for="e-cloud"><strong>Fully online</strong><span>no local AI needed</span></label>
+      </div>
+      <p class="hint" id="engine-hint" hidden></p>
+    </div>
+
+    <div class="field" id="avatar-field" hidden>
+      <label>Pick your interviewer</label>
+      <div class="avatar-strip" id="avatar-strip"></div>
+      <p class="hint" id="avatar-hint">Loading available interviewers…</p>
+      <div class="check-row" style="margin-top:12px">
+        <label><input type="checkbox" name="sandbox" value="true" checked> Sandbox session (free test: fixed "Wayne" avatar, ends after about a minute)</label>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit" id="generate-btn">Build my interview</button>
+  </form>
+
+  <aside class="card aside-note">
+    <h3>Before you start</h3>
+    <ul id="checklist">
+      <li>Quiet room, working microphone.</li>
+      <li id="chk-llm">Checking LM Studio…</li>
+      <li id="chk-avatar">Checking avatar service…</li>
+      <li>Speak naturally, pauses are fine. The interviewer waits for you to finish.</li>
+    </ul>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const engineRadios = document.querySelectorAll('input[name="engine"]');
+  const avatarField = document.getElementById('avatar-field');
+  const engineHint = document.getElementById('engine-hint');
+  let avatarsLoaded = false;
+
+  async function loadAvatars() {
+    if (avatarsLoaded) return;
+    avatarsLoaded = true;
+    const hint = document.getElementById('avatar-hint');
+    try {
+      const resp = await fetch('/api/avatar/avatars');
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error);
+      const strip = document.getElementById('avatar-strip');
+      data.avatars.forEach((a, i) => {
+        const input = document.createElement('input');
+        input.type = 'radio'; input.name = 'avatar_id'; input.value = a.id;
+        input.id = 'av-' + i; if (i === 0) input.checked = true;
+        const face = document.createElement('label');
+        face.className = 'face'; face.htmlFor = input.id;
+        const img = document.createElement('img');
+        img.src = a.preview_url || ''; img.alt = a.name || 'Avatar';
+        const cap = document.createElement('figcaption');
+        cap.textContent = a.name || 'Interviewer';
+        face.append(img, cap);
+        strip.append(input, face);
+      });
+      hint.hidden = true;
+    } catch (err) {
+      hint.textContent = err.message || 'Avatar list unavailable, check LIVEAVATAR_API_KEY in .env.';
+    }
+  }
+
+  function onEngineChange() {
+    const v = document.querySelector('input[name="engine"]:checked').value;
+    const needsAvatar = v !== 'local';
+    avatarField.hidden = !needsAvatar;
+    if (needsAvatar) loadAvatars();
+    engineHint.hidden = v !== 'cloud';
+    engineHint.textContent = v === 'cloud'
+      ? 'The conversation runs on LiveAvatar’s cloud. Your local model still writes the briefing and feedback.'
+      : '';
+  }
+  engineRadios.forEach(r => r.addEventListener('change', onEngineChange));
+
+  fetch('/api/health').then(r => r.json()).then(h => {
+    const llm = document.getElementById('chk-llm');
+    llm.textContent = h.llm
+      ? 'LM Studio is up (' + h.llm_model + ').'
+      : 'LM Studio not reachable, start it and load ' + h.llm_model + '.';
+    if (!h.llm) llm.style.color = 'var(--red)';
+    const av = document.getElementById('chk-avatar');
+    av.textContent = h.avatar_configured
+      ? 'LiveAvatar key found, avatar and online modes available.'
+      : 'No LiveAvatar key, avatar and online modes stay off until you add one to .env.';
+  }).catch(() => {});
+</script>
+{% endblock %}

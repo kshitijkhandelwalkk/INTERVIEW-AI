@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Live interview · Interview Room{% endblock %}
+{% block crumb %}step 3 of 3, the interview{% endblock %}
+{% block content %}
+<section style="margin-bottom:26px">
+  <span class="eyebrow">{{ position }} · {{ difficulty }} room</span>
+  <h1 class="page-title">You're in the room.</h1>
+</section>
+
+<div class="notice" id="room-notice" hidden></div>
+
+<div class="room">
+  <div class="stage">
+    <video id="avatar-video" autoplay playsinline hidden></video>
+    <div class="viz-wrap" id="viz-wrap">
+      <canvas id="viz" width="300" height="300" aria-hidden="true"></canvas>
+    </div>
+    <div class="stage-footer">
+      <span class="timer" id="timer">00:00</span>
+      <span class="state-pill" id="state-pill">not started</span>
+    </div>
+  </div>
+
+  <div class="card script">
+    <div class="script-head">
+      <h2>Transcript</h2>
+      <span class="crumb">live</span>
+    </div>
+    <div class="script-body" id="script-body">
+      <p class="placeholder">
+        The conversation appears here as you speak. Start when you're ready, and
+        open with a greeting, the interviewer will take it from there.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="room-controls">
+  <button class="btn btn-primary" id="start-btn">Start the interview</button>
+  <button class="btn btn-quiet" id="skip-btn" hidden>Skip reply</button>
+  <button class="btn btn-quiet" id="mute-btn" hidden>Mute mic</button>
+  <button class="btn btn-danger" id="end-btn" hidden>End &amp; get feedback</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.INTERVIEW = {
+    sessionId: {{ session_id | tojson }},
+    engine: {{ engine | tojson }},
+  };
+</script>
+{% if engine != 'local' %}
+<script src="/static/js/events-shim.js"></script>
+<script src="/static/vendor/liveavatar.umd.js"></script>
+{% endif %}
+<script type="module" src="/static/js/interview.js"></script>
+{% endblock %}

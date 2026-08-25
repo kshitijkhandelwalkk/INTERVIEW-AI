@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Your feedback · Interview Room{% endblock %}
+{% block crumb %}debrief{% endblock %}
+{% block content %}
+<section style="margin-bottom:34px">
+  <span class="eyebrow">{{ position }}</span>
+  <h1 class="page-title">How it went.</h1>
+</section>
+
+<div class="loading-row" id="fb-loading">
+  <span class="spinner" aria-hidden="true"></span>
+  Reading the transcript and writing your debrief…
+</div>
+<div class="notice notice-error" id="fb-error" hidden></div>
+
+<div id="fb-content" hidden>
+  <div class="card scorehead">
+    <div class="score-dial"><span id="fb-score">–</span><small>/10</small></div>
+    <p class="summary" id="fb-summary"></p>
+  </div>
+
+  <div class="fb-grid">
+    <div class="card fb-card strengths">
+      <h3>What worked</h3>
+      <ul id="fb-strengths"></ul>
+    </div>
+    <div class="card fb-card">
+      <h3>Do this next time</h3>
+      <ul id="fb-recs"></ul>
+    </div>
+    <div class="card fb-card" style="grid-column: 1 / -1">
+      <h3>Where to sharpen up</h3>
+      <ul id="fb-areas"></ul>
+    </div>
+  </div>
+
+  <div class="transcript-review">
+    <details>
+      <summary>Full transcript</summary>
+      <div class="script-body" id="fb-transcript" style="max-height:none"></div>
+    </details>
+  </div>
+
+  <div class="room-controls" style="justify-content:flex-start">
+    <a class="btn btn-primary" href="/">Run it again</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const AREA_LABELS = {
+    introduction: "Introduction",
+    response_quality: "Answer structure",
+    technical_knowledge: "Technical depth",
+    communication: "Communication",
+    questions_to_interviewer: "Your questions to them",
+  };
+
+  function li(text) {
+    const el = document.createElement("li");
+    el.textContent = text;
+    return el;
+  }
+
+  fetch("/api/sessions/" + {{ session_id | tojson }} + "/feedback")
+    .then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Couldn't build feedback.");
+      return data;
+    })
+    .then((data) => {
+      const fb = data.feedback;
+      document.getElementById("fb-loading").hidden = true;
+      document.getElementById("fb-content").hidden = false;
+      document.getElementById("fb-score").textContent = fb.score;
+      document.getElementById("fb-summary").textContent = fb.summary;
+      const s = document.getElementById("fb-strengths");
+      (fb.strengths || []).forEach((t) => s.append(li(t)));
+      const r = document.getElementById("fb-recs");
+      (fb.recommendations || []).forEach((t) => r.append(li(t)));
+      const a = document.getElementById("fb-areas");
+      Object.entries(fb.areas_for_improvement || {}).forEach(([key, items]) => {
+        (items || []).forEach((t) => a.append(li((AREA_LABELS[key] || key) + ", " + t)));
+      });
+      const tr = document.getElementById("fb-transcript");
+      (data.transcript || []).forEach((line) => {
+        const wrap = document.createElement("div");
+        wrap.className = "line " + (line.role === "assistant" ? "interviewer" : "you");
+        const who = document.createElement("span");
+        who.className = "who";
+        who.textContent = line.role === "assistant" ? "Interviewer" : "You";
+        const said = document.createElement("p");
+        said.className = "said";
+        said.textContent = line.text;
+        wrap.append(who, said);
+        tr.append(wrap);
+      });
+    })
+    .catch((err) => {
+      document.getElementById("fb-loading").hidden = true;
+      const box = document.getElementById("fb-error");
+      box.hidden = false;
+      box.textContent = err.message;
+    });
+</script>
+{% endblock %}
