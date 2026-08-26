@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Your briefing · Interview Room{% endblock %}
+{% block crumb %}step 2 of 3, the briefing{% endblock %}
+{% block content %}
+<section style="margin-bottom:34px">
+  <span class="eyebrow">{{ position }} · {{ difficulty }} room</span>
+  <h1 class="page-title">Read the room first.</h1>
+  <p class="page-lede">
+    Here's who you're meeting and what they're likely to ask.
+    Take a minute, then walk in.
+  </p>
+</section>
+
+{% if error %}
+  <div class="notice notice-error">{{ error }}</div>
+  <a class="btn btn-quiet" href="/">Back to setup</a>
+{% else %}
+  <article class="card brief-doc">
+    {{ briefing | safe }}
+  </article>
+  <div class="brief-actions">
+    <a class="btn btn-primary" href="/interview?session={{ session_id }}">I'm ready, start the interview</a>
+    <a class="btn btn-quiet" href="/">Change the role</a>
+  </div>
+{% endif %}
+{% endblock %}

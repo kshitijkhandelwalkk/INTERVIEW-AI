@@ -1,0 +1,13 @@
+AI Video Interviewer - Interactive Avatar Edition
+Upgrade date: 2026-08-26
+
+Major changes:
+- 4 named interviewer profiles
+- Different avatar mapping per interviewer
+- Optional realistic LiveAvatar video avatars
+- Browser camera + microphone
+- Speech recognition + TTS fallback
+- Speaking/listening states
+- Live transcript and filler-word count
+- Adaptive AI questions using interviewer persona
+- Existing 8-question evaluation retained
